@@ -42,13 +42,12 @@ class DLForegroundExtractor(object):
     def __init__(self, imgSize):
         self.dlab = models.segmentation.deeplabv3_resnet101(pretrained=1).eval()
         self.imgSize = imgSize
-
-    def _getCarsMaskAtFrame(self,img):
-        trf = T.Compose([
+        self.trf = T.Compose([
                         T.ToTensor(), 
                         T.Normalize(mean = [0.485, 0.456, 0.406], 
                                     std = [0.229, 0.224, 0.225])])
-        inp = trf(img).unsqueeze(0)
+    def _getCarsMaskAtFrame(self,img):
+        inp = self.trf(img).unsqueeze(0)
         out = self.dlab(inp)['out']
         print("done")
         om = torch.argmax(out.squeeze(), dim=0).detach().cpu().numpy()
