@@ -8,8 +8,8 @@ from PIL import Image
 from torch.autograd import Variable
 
 from yolov3.models import *
-from yolov3.utils.utils import *
-from yolov3.utils.datasets import *
+from yolov3.utils import *
+import torchvision.transforms as T
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -17,7 +17,7 @@ class objectDetector(object):
     """
     Object Detector high level object using YOLOv3 from https://github.com/eriklindernoren/PyTorch-YOLOv3.git
     """
-    def __init__(self, imgSize, weightPath, classPath, modelDef, confidenceThres=0.7, IoUThres=0.4):
+    def __init__(self, imgSize, weightPath, modelDef, confidenceThres=0.5, IoUThres=0.2):
         self.imgSize = imgSize
         self.confidenceThres = confidenceThres
         self.IoUThres = IoUThres
@@ -38,19 +38,19 @@ class objectDetector(object):
 
     def detect(self, img):
         imgPIL = Image.fromarray(img)
-        inp = self.trf(img).unsqueeze(0)
+        inp = self.tensorType(self.trf(img).unsqueeze(0).cuda())
         with torch.no_grad():
-            detections = model(inp)
+            detections = self.model(inp)
             detections = non_max_suppression(detections, 
                                              self.confidenceThres, 
                                              self.IoUThres)
         if detections is not None:
             #x1, y1, x2, y2, conf, confidence, class pred
-            detections = rescale_boxes(detections, opt.img_size, img.shape[:2])
+            detections = rescale_boxes(detections[0], self.imgSize[0], img.shape[:2])
         return detections
 
 class objectVisualizer(object):
-    def __init__(self, classPath, color = (0,0,255), thickness=1):
+    def __init__(self, classPath, color=(0,0,255), thickness=1, textColor=(255,0,0), textThickness=1):
         self.color = color
         self.thickness = thickness
         self.classes = load_classes(classPath)
@@ -63,7 +63,10 @@ class objectVisualizer(object):
             unique_labels = detections[:, -1].cpu().unique()
             n_cls_preds = len(unique_labels)
             for x1, y1, x2, y2, conf, cls_conf, cls_pred in detections:
-                imgCpy = cv2.Rectangle(imgCpy,(x1,y1),(x2,y2))
-                imgCpy = cv2.putText(imgCpy, f"{self.classes[cls_pred]} {cls_conf}",
-                                     (x1,y1), cv2.FONT_HERSHEY_COMPLEX_SMALL,1, self.textColor, self.textThickness)
+                x1y1 = (int(x1),int(y1))
+                x2y2 = (int(x2),int(y2))
+                imgCpy = cv2.rectangle(imgCpy,x1y1,x2y2,
+                                        self.color, self.thickness)
+                imgCpy = cv2.putText(imgCpy, f"{self.classes[int(cls_pred)]} {cls_conf}",
+                                     x1y1, cv2.FONT_HERSHEY_COMPLEX_SMALL,1, self.textColor, self.textThickness)
         return imgCpy

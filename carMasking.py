@@ -17,7 +17,7 @@ CAR = 7
 class TraditionalForegroundExtractor(object):
     def __init__(self,
                 kernelSize=(3,3)):
-        self.subtractor = cv2.createBackgroundSubtractorMOG2()
+        self.subtractor = cv2.createBackgroundSubtractorKNN()
         self.kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE,kernelSize)
 
     def _getCarsMaskAtFrame(self,frame):
@@ -28,9 +28,7 @@ class TraditionalForegroundExtractor(object):
         foregroundMask = cv2.morphologyEx(foregroundMask, 
                                         cv2.MORPH_OPEN, 
                                         self.kernel)
-        self.foregroundMask = cv2.morphologyEx(foregroundMask, cv2.MORPH_CLOSE, (7,7),iterations=10)
-        return self.foregroundMask 
-
+        self.foregroundMask = cv2.dilate(foregroundMask,kernel = np.ones((5,5),np.uint8))
     def maskCarsAtFrame(self,frame):
         self._getCarsMaskAtFrame(frame)
         maskedFrame = cv2.bitwise_and(frame,frame,mask=self.foregroundMask)
@@ -40,7 +38,7 @@ class TraditionalForegroundExtractor(object):
 
 class DLForegroundExtractor(object):
     def __init__(self, imgSize):
-        self.dlab = models.segmentation.deeplabv3_resnet101(pretrained=1).eval()
+        self.dlab = models.segmentation.deeplabv3_resnet50(pretrained=1).eval()
         self.imgSize = imgSize
         self.trf = T.Compose([
                         T.ToTensor(), 
@@ -49,7 +47,6 @@ class DLForegroundExtractor(object):
     def _getCarsMaskAtFrame(self,img):
         inp = self.trf(img).unsqueeze(0)
         out = self.dlab(inp)['out']
-        print("done")
         om = torch.argmax(out.squeeze(), dim=0).detach().cpu().numpy()
         om[om != 0] = 255
         return om
