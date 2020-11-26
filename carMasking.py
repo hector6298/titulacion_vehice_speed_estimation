@@ -9,6 +9,7 @@ from matplotlib import cm
 
 from PIL import Image
 from torchvision import models
+from EdgesLinesUtils import *
 
 #class macros
 BUS = 6
@@ -35,7 +36,6 @@ class TraditionalForegroundExtractor(object):
         return maskedFrame
 
 
-
 class DLForegroundExtractor(object):
     def __init__(self, imgSize):
         self.dlab = models.segmentation.deeplabv3_resnet50(pretrained=1).eval()
@@ -57,4 +57,68 @@ class DLForegroundExtractor(object):
         maskedFrame = cv2.bitwise_and(gray,gray,mask=np.uint8(om))
         return maskedFrame
     
-    #plt.imshow(rgb); plt.axis('off'); plt.show()
+
+class objectFocusTools(object):
+    def __init__(self,imgSize, detector):
+        self.imgSize
+        self.detector = detector
+    
+    def _getMaskfromYOLODetection(frame):
+        detections = self.detector(frame)
+        masks = np.zeros((len(detections),*self.imgSize), np.uint8)
+        i = 0
+        for x1, y1, x2, y2, _, _, _ in detections:
+            masks[i,int(y1):int(y2)+1,int(x1):int(x2)+1] = 1
+            i += 1
+        return masks
+
+    def focusOnObjects(frame):
+        masks = _getMaskfromYOLODetection(frame)
+        instancesAtFrame = [cv2.bitwise_and(frame,frame,mask=masks[i]) for i in range(len(masks))]
+        return instancesAtFrame
+    
+    def getObjectLinesAtFrame(frame, grayFrame,angleBounds):
+        linesCont = []
+        masks = _getMaskfromYOLODetection(frame)
+        edgeMap = getEdgeMap(gray,100,200).astype(np.uint8)
+        if masks is not None:
+            instancesAtFrame = [cv2.bitwise_and(edgeMap,edgeMap,mask=masks[i]) for i in range(len(masks))]
+            for i in range(len(instancesAtFrame)):
+                lines = getLinesFromEdges(instancesAtFrame[i],angleBounds)
+                if len(lines) > 0:
+                    linesCont.append(lines)
+        linesCont = flatten(linesCont)
+        #print(linesCont)
+        return linesCont
+
+
+################################
+# NON OBJECT HELPERS
+################################
+
+def getMaskfromYOLODetection(imgSize,detections):
+    masks = np.zeros((len(detections),*imgSize), np.uint8)
+    i = 0
+    for x1, y1, x2, y2, _, _, _ in detections:
+        masks[i,int(y1):int(y2)+1,int(x1):int(x2)+1] = 1
+        i += 1
+    return masks
+
+flatten = lambda t: [item for sublist in t for item in sublist]
+
+def getLinesAtFrame(gray,detections, angleBounds):
+    imgSize = gray.shape
+    linesCont = []
+    masks = getMaskfromYOLODetection(imgSize,detections)
+    edgeMap = getEdgeMap(gray,100,200).astype(np.uint8)
+ 
+    if masks is not None:
+        instancesAtFrame = [cv2.bitwise_and(edgeMap,edgeMap,mask=masks[i]) for i in range(len(masks))]
+        for i in range(len(instancesAtFrame)):
+            lines = getLinesFromEdges(instancesAtFrame[i],angleBounds)
+            if len(lines) > 0:
+                linesCont.append(lines)
+    linesCont = flatten(linesCont)
+    #print(linesCont)
+
+    return linesCont
