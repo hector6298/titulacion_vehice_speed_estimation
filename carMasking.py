@@ -9,7 +9,7 @@ from matplotlib import cm
 
 from PIL import Image
 from torchvision import models
-from EdgesLinesUtils import *
+from imgFeatureUtils import *
 from objectDetection import objectDetector
 
 #class macros
@@ -90,7 +90,7 @@ class objectFocusTools(object):
                     linesCont.append(lines)
         linesCont = flatten(linesCont)
         #print(linesCont)
-        return linesCont
+        return linesCont, edgeMap
 
 
 ################################

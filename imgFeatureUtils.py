@@ -4,6 +4,27 @@ import matplotlib.pyplot as plt
 
 from skimage import feature,color,transform,io
 
+def getTheta(line: tuple):
+    p0, p1 = line
+    delta = np.array(p1) - np.array(p0)
+    theta = np.arctan(float(delta[1])/delta[0])
+    return theta
+
+def euclideanDist(line : tuple):
+    p0, p1 = line
+    return np.sqrt((p1[0]-p0[0])**2 + (p1[1]-p0[1])**2)
+
+def getLinesEuclideanDist(lines: list):
+    distances = []
+    for line in lines:
+        distances.append(euclideanDist(line))
+    return distances
+
+def getLinesThetas(lines: list):
+    thetas = []
+    for line in lines:
+        thetas.append(getTheta(line))
+    return thetas
 
 def getEdgeMap(grayImg, min, max):
     grayImgCpy = grayImg.copy()
