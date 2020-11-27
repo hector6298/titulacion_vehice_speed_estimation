@@ -10,6 +10,7 @@ from matplotlib import cm
 from PIL import Image
 from torchvision import models
 from EdgesLinesUtils import *
+from objectDetection import objectDetector
 
 #class macros
 BUS = 6
@@ -59,12 +60,12 @@ class DLForegroundExtractor(object):
     
 
 class objectFocusTools(object):
-    def __init__(self,imgSize, detector):
-        self.imgSize
+    def __init__(self,imgSize : tuple, detector : objectDetector):
+        self.imgSize = imgSize
         self.detector = detector
     
-    def _getMaskfromYOLODetection(frame):
-        detections = self.detector(frame)
+    def _getMaskfromYOLODetection(self, frame):
+        detections = self.detector.detect(frame)
         masks = np.zeros((len(detections),*self.imgSize), np.uint8)
         i = 0
         for x1, y1, x2, y2, _, _, _ in detections:
@@ -72,15 +73,15 @@ class objectFocusTools(object):
             i += 1
         return masks
 
-    def focusOnObjects(frame):
-        masks = _getMaskfromYOLODetection(frame)
+    def focusOnObjects(self, frame):
+        masks = self._getMaskfromYOLODetection(frame)
         instancesAtFrame = [cv2.bitwise_and(frame,frame,mask=masks[i]) for i in range(len(masks))]
         return instancesAtFrame
     
-    def getObjectLinesAtFrame(frame, grayFrame,angleBounds):
+    def getObjectLinesAtFrame(self, frame, grayFrame,angleBounds):
         linesCont = []
-        masks = _getMaskfromYOLODetection(frame)
-        edgeMap = getEdgeMap(gray,100,200).astype(np.uint8)
+        masks = self._getMaskfromYOLODetection(frame)
+        edgeMap = getEdgeMap(grayFrame,100,200).astype(np.uint8)
         if masks is not None:
             instancesAtFrame = [cv2.bitwise_and(edgeMap,edgeMap,mask=masks[i]) for i in range(len(masks))]
             for i in range(len(instancesAtFrame)):
