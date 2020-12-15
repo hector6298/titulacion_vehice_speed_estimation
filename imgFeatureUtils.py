@@ -30,7 +30,7 @@ def getEdgeMap(grayImg, min, max):
     grayImgCpy = grayImg.copy()
     return cv2.Canny(grayImgCpy,min,max)
 
-def getLinesFromEdges(edgeMap, angleBounds: tuple, line_length=15, line_gap=1):
+def getLinesFromEdges(edgeMap, angleBounds: tuple, line_length=15, line_gap=2):
     lines = transform.probabilistic_hough_line(edgeMap, line_length=line_length, line_gap=line_gap)
     filteredLines = []
     for p0, p1 in lines:

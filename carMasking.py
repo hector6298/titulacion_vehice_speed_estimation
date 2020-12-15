@@ -19,7 +19,7 @@ CAR = 7
 class TraditionalForegroundExtractor(object):
     def __init__(self,
                 kernelSize=(3,3)):
-        self.subtractor = cv2.createBackgroundSubtractorKNN()
+        self.subtractor = cv2.bgsegm.createBackgroundSubtractorMOG()
         self.kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE,kernelSize)
 
     def _getCarsMaskAtFrame(self,frame):
@@ -27,10 +27,8 @@ class TraditionalForegroundExtractor(object):
     
         foregroundMask = self.subtractor.apply(frame)
         foregroundMask[foregroundMask != 0] = 255
-        foregroundMask = cv2.morphologyEx(foregroundMask, 
-                                        cv2.MORPH_OPEN, 
-                                        self.kernel)
-        self.foregroundMask = cv2.dilate(foregroundMask,kernel = np.ones((5,5),np.uint8))
+        
+        self.foregroundMask = cv2.morphologyEx(foregroundMask, cv2.MORPH_CLOSE, kernel = cv2.getStructuringElement(cv2.MORPH_CROSS,(3,3)), iterations=20)
     def maskCarsAtFrame(self,frame):
         self._getCarsMaskAtFrame(frame)
         maskedFrame = cv2.bitwise_and(frame,frame,mask=self.foregroundMask)
