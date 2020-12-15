@@ -106,7 +106,7 @@ class CCamCal(Object):
         if COORD_SYS_TYP == 0:
             camParam.setTntMat(0.0, (-fCamHeight*self.m_oCfg.m_nLenUnit), 0.0)
         elif COORD_SYS_TYP == 1:
-            camParam.setTntMat(0.0,0.0, (fCamHeight * self.m_oCfg.m_nLenUnit)
+            camParam.setTntMat(0.0,0.0, (fCamHeight * self.m_oCfg.m_nLenUnit))
         
         camParam.calcProjMat()
 
@@ -114,16 +114,16 @@ class CCamCal(Object):
 
     def tstStGrdPt(self, oStGrdPt:tuple, camParam:CCamParam):
         nLftEdgX = (-(IMG_EXPN_RAT - 1.0) / 2.0) * self.m_oCfg.m_oFrmSz[1]
-        nLftEdgX = (-(IMG_EXPN_RAT - 1.0) / 2.0) * self.m_oCfg.m_oFrmSz[0]
-        nLftEdgX = ((IMG_EXPN_RAT + 1.0) / 2.0) * self.m_oCfg.m_oFrmSz[1]
-        nLftEdgX = ((IMG_EXPN_RAT + 1.0) / 2.0) * self.m_oCfg.m_oFrmSz[0]
+        nTopEdgY = (-(IMG_EXPN_RAT - 1.0) / 2.0) * self.m_oCfg.m_oFrmSz[0]
+        nRgtEdgX = ((IMG_EXPN_RAT + 1.0) / 2.0) * self.m_oCfg.m_oFrmSz[1]
+        nBtmEdgY = ((IMG_EXPN_RAT + 1.0) / 2.0) * self.m_oCfg.m_oFrmSz[0]
         
         o2dStPt = (-1.0, -1.0)
         o2dRNdPt = (-1.0,-1.0)
         o2dLNdPt = (-1.0,-1.0)
         o2dNdPt = (-1.0, -1.0)
 
-        oNdGrdPt = np.array((2,))
+        oNdGrdPt = np.empty((2,))
         oNdGrdPt[1] = oNdGrdPt[1] + self.m_oCfg.m_nCalGrdSzR
         oNdGrdPt[0] = oNdGrdPt[0] + self.m_oCfg.m_nCalGrdSzL
 
@@ -137,7 +137,15 @@ class CCamCal(Object):
             o2dRNdPt = proj3d22d((oNdGrdPt[1], oStGrdPt[0], 0.0), poCamParam.m_afP, self.m_oCfg.m_nLenUnit)
             o2dLNdPt = proj3d22d((oStGrdPt[1], oNdGrdPt[0], 0.0), poCamParam.m_afP, self.m_oCfg.m_nLenUnit)
             o2dNdPt = proj3d22d((oNdGrdPt[1], oNdGrdPt[0], 0.0), poCamParam.m_afP, self.m_oCfg.m_nLenUnit)
-    
+
+        if (((o2dStPt[1] >= nLftEdgX) and (o2dStPt[0] >= nTopEdgY) and (o2dStPt[1] < nRgtEdgX) and (o2dStPt[0] < nBtmEdgY)) and\
+		((o2dRNdPt[1] >= nLftEdgX) and (o2dRNdPt[0] >= nTopEdgY) and (o2dRNdPt[1] < nRgtEdgX) and (o2dRNdPt[0] < nBtmEdgY)) and\
+		((o2dLNdPt[1] >= nLftEdgX) and (o2dLNdPt[0] >= nTopEdgY) and (o2dLNdPt[1] < nRgtEdgX) and (o2dLNdPt[0] < nBtmEdgY)) and\
+		((o2dNdPt[1] >= nLftEdgX) and (o2dNdPt[0] >= nTopEdgY) and (o2dNdPt[1] < nRgtEdgX) and (o2dNdPt[0] < nBtmEdgY))):
+            return True
+        else:
+            return False
+
     def calcStGrdPt(self, camParam):
         bStGrdPtFlg = False
         nMaxSumSqDist = 0
@@ -156,14 +164,174 @@ class CCamCal(Object):
                     oStGrdPt[1] = voPt[i][1]
                     oStGrdPt[0] = voPt[i][0]
 
-    
+                    if self.tstStGrdPt(oStGrdPt, camParam):
+                        bStGrdPtFlg = True
+                        break
+                    if voPt[i][1] > 0:
+                        oStGrdPt[1] = -voPt[i][1]
+                        oStGrdPt[0] = voPt[i][0]
+                        if self.tstStGrdPt(oStGrdPt, camParam):
+                            bStGrdPtFlg = True
+                            break
+                    if voPt[i][0] > 0:
+                        oStGrdPt[1] = voPt[i][1]
+                        oStGrdPt[0] = -voPt[i][0]
+                        if self.tstStGrdPt(oStGrdPt, camParam):
+                            bStGrdPtFlg=True
+                            break
+                    if voPt[i][1] > 0:
+                        oStGrdPt[1] = -voPt[i][1]
+                        oStGrdPt[0] = -voPt[i][0]
+                        if self.tstStGrdPt(oStGrdPt, camParam):
+                            bStGrdPtFlg = True
+                            break
+                    if voPt[i][1] < voPt[i][0]:
+                        oStGrdPt[1] = voPt[i][0]
+                        oStGrdPt[0] = voPt[i][1]
+                        if self.tstStGrdPt(oStGrdPt, camParam):
+                            bStGrdPtFlg = True
+                            break
+                    if vopt[i][1] < voPt[i][0]:
+                        oStGrdPt[1] = -voPt[i][0]
+                        oStGrdPt[0] = voPt[i][1]
+                        if self.tstStGrdPt(oStGrdPt,camParam):
+                            bStGrdPtFlg = True
+                            break
+                    if (voPt[i][1] < voPt[i][0]) and (0 < voPt[i][1]):
+                        oStGrdPt[1] = voPt[i][0]
+                        oStGrdPt[0] = -voPt[i][1]
+                        if self.tstStGrdPt(oStGrdPt, camParam):
+                            bStGrdPtFlg = True
+                            break
+                    if (voPt[i][1] < voPt[i][0]) and (0 < voPt[i][1]):
+                        oStGrdPt[1] = -voPt[i][0]
+                        oStGrdPt[0] = -voPt[i][1]
+                        if self.tstStGrdPt(oStGrdPt, camParam):
+                            bStGrdPtFlg = True
+                            break
+            if bStGrdPtFlg:
+                break
+            nMaxSumSqDist += 1
+
+        return oStGrdPt
+                    
+    def initEdaParamRng(self, oVr, oVl, oPrincipalPt, camParam:CCamParam) -> SParamRng:
+        sParamRng = SParamRng()
+        oVrC = np.empty((2,))
+        oVlC = np.empty((2,))
+        oVrCRot = np.empty((2,))
+        oVlCRot = np.empty((2,))
+
+        oVrC[1] = oVr[1] - oPrincipalPt[1]
+        oVrC[0] = oPrincipalPt[0] - oVr[0]
+        oVlC[1] = oVl[1] - oPrincipalPt[1]
+        oVlC[0] = oPrincipalPt[0] - oVl[0]
+
+        fRoll = np.arctan2((oVrC[0] - oVlC[0]), (oVrC[1] - oVlC[1]))
+        fRoll = fRoll - np.pi if fRoll > (np.pi/2.0) else fRoll
+        fRoll = fRoll + np.pi if fRoll < (-np.pi/2.0) else fRoll
+
+        oVrCRot = rotPt(oVrC, -fRoll)
+        oVlCRot = rotPt(oVlC, -fRoll)
+
+        if camParam:
+            acK = camParam.m_afK
+            fF = (acL[0] + ack[4]) / 2.0
+        else:
+            #check this
+            fF = np.sqrt(-((oVrCRot[0]*oVlCRot[0]) + (oVrCRot[1]*oVlCRot[1])))
+        
+        if COORD_SYS_TYP == 0:
+            fPitch = np.arctan2(oVrCRot[0], fF)
+            fYaw = -np.arctan2(fF, (oVrCRot[1] - np.cos(fPitch)))
+        elif COORD_SYS_TYP == 1:
+            fPitch = -np.arctan2(oVrCRot[0], fF)
+            fYaw = -np.arctan2((oVrCRot[1]*np.cos(fPitch)), fF)
+
+        #construct ranges of camera parameters
+
+        sParamRng.fFxMax =  camParam.m_afK[0] if camParam is not None else fF * (1.0 + EDA_RNG_F)
+        sParamRng.fFxMin =  camParam.m_afK[0] if camParam is not None else fF * (1.0 - EDA_RNG_F)
+        sParamRng.fFyMax =  camParam.m_afK[4] if camParam is not None else fF * (1.0 + EDA_RNG_F)
+        sParamRng.fFyMin =  camParam.m_afK[4] if camParam is not None else fF * (1.0 - EDA_RNG_F)
+        sParamRng.fCxMax =  camParam.m_afK[2] if camParam is not None else oPrincipalPt[1] + EDA_RNG_PRIN_PT
+        sParamRng.fCxMin =  camParam.m_afK[2] if camParam is not None else oPrincipalPt[1] - EDA_RNG_PRIN_PT
+        sParamRng.fCyMax =  camParam.m_afK[5] if camParam is not None else oPrincipalPt[0] + EDA_RNG_PRIN_PT
+        sParamRng.fCyMin =  camParam.m_afK[5] if camParam is not None else oPrincipalPt[0] - EDA_RNG_PRIN_PT
+        sParamRng.fRollMax = fRoll + deg2rad(EDA_RNG_ROT_ANG)
+        sParamRng.fRollMin = fRoll - deg2rad(EDA_RNG_ROT_ANG)
+        sParamRng.fPitchMax = fPitch + deg2rad(EDA_RNG_ROT_ANG)
+        sParamRng.fPitchMin = fPitch - deg2rad(EDA_RNG_ROT_ANG)
+        sParamRng.fYawMax = fYaw + deg2rad(EDA_RNG_ROT_ANG)
+        sParamRng.fYawMin = fYaw - deg2rad(EDA_RNG_ROT_ANG)
+        sParamRng.fTxMax = 0.0
+        sParamRng.fTxMin = 0.0
+
+        if COORD_SYS_TYP == 0:
+            sParamRng.fTyMax = -self.m_oCfg.m_fCalCamHeiMin * self.m_oCfg.m_nLenUnit
+            sParamRng.fTyMin = -self.m_oCfg.m_fCalCamHeiMax * self.m_oCfg.m_nLenUnit
+            sParamRng.fTzMax = 0.0
+            sParamRng.fTzMin = 0.0
+        elif COORD_SYS_TYP == 1:
+            sParamRng.fTyMax = 0.0
+            sParamRng.fTyMin = 0.0
+            sParamRng.fTzMax = self.m_oCfg.m_fCalCamHeiMax * self.m_oCfg.m_nLenUnit
+            sParamRng.fTzMin = self.m_oCfg.m_fCalCamHeiMin * self.m_oCfg.m_nLenUnit
+        
+        return sParamRng
+
     def calCamEdaOpt(self):
 
-        nr = EDA_INIT_POP
+        nR = EDA_INIT_POP
         nN = EDA_SEL_POP
-        NIterNum = EDA_ITER_NUM
+        nIterNum = EDA_ITER_NUM
         iIter = 0
+        oCamParamRand = CCamParam()
+        oCamParam = CCamParam()
 
         #set Starting Grid Point
-        camParam = compCamParam(self.m_oVr, self.m_oVl, self.m_oPrinPt, ((self.m_oCfg.m_fCalCamHeiMax + self.m_oCfg.m_fCalCamHeiMin)/ 2.0))
-        oStGrdPt = calcStGrdPt(camParam)
+        camParam = self.compCamParam(self.m_oVr, self.m_oVl, self.m_oPrinPt, ((self.m_oCfg.m_fCalCamHeiMax + self.m_oCfg.m_fCalCamHeiMin)/ 2.0))
+        oStGrdPt = self.calcStGrdPt(camParam)
+
+        sParamRng = initEdaParamRng(self.m_oVr, self.m_oVl, self.m_oPrinPt)
+
+        # EDA optimization
+
+        if nN > nR:
+            raise Exception("Error: Selected population should be less than initial population")
+
+        voCamParam = []
+
+        for iR in range(nR):
+            oCamParamRand.initCamMdl(sParamRng)
+            voCamParam.append(oCamParamRand)
+        
+        print("Start EDA optimization for camera calibration")
+
+        while nIterNum > iIter:
+            print(f"==== generation {iIter}: ====")
+            iProc = 0
+            bProc25 = False
+            bProc50 = False
+            bProc75 = False
+            fReprojErrMean = 0.0
+            fReprojErrStd = 0.0
+
+            for ivoCamParam in voCamParam:
+                fFx = ivoCamParam.m_fFx
+                fFy = ivoCamParam.m_fFy
+                fCx = ivoCamParam.m_fCx
+                fCy = ivoCamParam.m_fCy
+                fRoll = ivoCamParam.m_fRoll
+                fPitch = ivoCamParam.m_fPitch
+                fYaw = ivoCamParam.m_fYaw
+                fTx = ivoCamParam.m_fTx
+                fTy = ivoCamParam.m_fTy
+                fTz = ivoCamParam.m_fTz
+
+                oCamParam.setInParamMat(fFx, fFy, fCx, fCy)
+                oCamParam.setRotMat(fRoll, fPitch, fYaw)
+                oCamParam.setTntMat(fTx, fTy, fTz)
+                oCamParam.calcProjMat()
+                #finish
+
