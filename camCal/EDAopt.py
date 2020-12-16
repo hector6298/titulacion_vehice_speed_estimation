@@ -280,6 +280,27 @@ class CCamCal(Object):
         
         return sParamRng
 
+
+    def calcReprojErr(self, camParam:CCamParam) -> float:
+        voMeasLnSegNdPt = self.m_oCfg.m_voCalMeasLnSegNdPt
+        vfMeasLnSegDist = self.m_oCfg.m_vfCalMeasLnSegDist
+        fReprojErr = 0.0
+
+        oSt2dPt = np.empty((2,))
+        oNd2DPt = np.empty((2,))
+        oSt3dPt = np.empty((3,))
+        oNd3dPt = np.empty((3,))
+
+        for i in range(len(voMeasLnSegNdPt)/2):
+            oSt2dPt = voMeasLnSegNdPt[i*2]
+            oNd2DPt = voMeasLnSegNdPt[i*2+1]
+            oSt3dPt = bkproj2d23d(oSt2dPt, camParam.m_afK, self.m_oCfg.m_nLenUnit)
+            oNd3dPt = bkproj2d23d(oNd2DPt, camParam.m_afK, self.m_oCfg.m_nLenUnit)
+
+            fReprojErr += np.abs(np.linalg.norm(oNd3dPt - oSt3dPt) - vfMeasLnSegDist[i])
+
+        return fReprojErr
+
     def calCamEdaOpt(self):
 
         nR = EDA_INIT_POP
@@ -333,5 +354,44 @@ class CCamCal(Object):
                 oCamParam.setRotMat(fRoll, fPitch, fYaw)
                 oCamParam.setTntMat(fTx, fTy, fTz)
                 oCamParam.calcProjMat()
-                #finish
 
+                fReprojErr = self.calcReprojErr(oCamParam)
+                ivoCamParam.m_fReprojErr = fReprojErr
+                fReprojErrMean += fReprojErr
+                iProc += 1
+
+                if ((float(iProc) / float(nR)) > 0.25) and (not bProc25):
+                    print("25%%...")
+                    bProc25 = True
+                if ((float(iProc) / float(nR)) > 0.50) and (not bProc50):
+                    print("50%%...")
+                    bProc50 = True
+                if ((float(iProc) / float(nR)) > 0.75) and (not bProc75):
+                    print("75%%...")
+                    bProc75 = True
+
+            fReprojErrMean /= nR
+
+            for ivoCamParam in voCamParam:
+                fReprojErr = ivoCamParam.m_fReprojErr
+                fReprojErrStd += (fReprojErr - fReprojErrMean) * (fReprojErr - fReprojErrMean)
+
+            fReprojErrStd = np.sqrt(fReprojErrStd / nR)
+
+            print("100%%!")
+            print(f"current error mean = {fReprojErrMean}")
+            print(f"current error standard deviation = {fReprojErrStd}")
+
+            if not fReprojErr:
+                print("calibration Failed")
+                break
+        
+            #check if generaiton needs to stop
+            if (o < iIter) and ((fReprojErrMeanPrev * EDA_REPROJ_ERR_THLD) > np.abs(fReprojErrMean - fReprojErrMeanPrev)):
+                print("Reprojection error is small enough. Stop generation.")
+                break
+
+            ReprojErrMeanPrev = fReprojErrMean
+
+            sorted(voCamParam, key=lambda param: param.m_fReprojErr)
+            

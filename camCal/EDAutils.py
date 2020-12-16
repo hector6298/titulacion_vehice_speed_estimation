@@ -14,7 +14,7 @@ def get_rand_num(max:float, min:float, seed:int):
     duration = max - min
     return min + rand*duration
 
-def proj3d22d(o3dPt:tuple, afProjMat:np.ndarray, nLenUnit:int=1):
+def proj3d22d(o3dPt:np.ndarray, afProjMat:np.ndarray, nLenUnit:int=1):
     oMatP = np.reshape(afProjMat, (3,4)).astype(np.float32)
     oMatM3d = np.empty((4,1), dtype=np.float32)
     oMatM2d = np.empty((3,1), dtype=np.float32)
@@ -29,7 +29,7 @@ def proj3d22d(o3dPt:tuple, afProjMat:np.ndarray, nLenUnit:int=1):
     o2dPt = ((oMatM2d[0,0]/oMatM2d[2,0]), (oMatM2d[1,0]/oMatM2d[2,0]))
     return o2dPt
 
-def bkproj2d23d(o2dPt:tuple,  afProjMat:np.ndarray, nLenUnit:int=1, nCoordSysTyp:int=1):
+def bkproj2d23d(o2dPt:np.ndarray,  afProjMat:np.ndarray, nLenUnit:int=1, nCoordSysTyp:int=1):
     oMatA = np.empty((3,3), dtype=np.float64)
 
     if nCoordSysTyp == 0:
@@ -70,4 +70,3 @@ def bkproj2d23d(o2dPt:tuple,  afProjMat:np.ndarray, nLenUnit:int=1, nCoordSysTyp
         o3dPt = (oMatM[0,0], oMatM[1,0], 0.0)/nLenUnit
 
     return o3dPt
-    
