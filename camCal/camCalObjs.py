@@ -162,7 +162,7 @@ class CCfg(Object):
         self.m_nCalGrdSzR = None
         self.m_nCalGrdSzL = None
         self.m_bCalEdaOptFlg = None
-
+        self.m_OutCamParamPth = ""
         #pairs of points of measuring line segments
         self.m_voCalMeasLnSegNdPt = []
         #ground truth ditances of measuring line segments

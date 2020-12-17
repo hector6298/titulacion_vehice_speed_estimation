@@ -19,18 +19,18 @@ class CCamCal(Object):
         #configuration params
         self.m_oCfg = oCfg
         #background image for plotting results
-        self.m_oImgBg = oImgBg
+        self.m_oImgBg = oImgBg.copy()
         self.m_bCol25ProgFlg = False
         self.m_bCol50ProgFlg = False
         self.m_bCol75ProgFlg = False
-        self.m_voVyCand = None
-        self.m_voLinfCand = None
+        self.m_voVyCand = []
+        self.m_voLinfCand = []
         self.m_oVy = None
-        self.m_fLinfSlp = none
+        self.m_fLinfSlp = None
         self.m_fLinfItcp = None
         self.m_fLinfCorr = None
-        self.m_oVr = None
-        self.m_oVl = None
+        self.m_oVr = np.array([(oCfg.m_oFrmSz[1] - 1), 0.0])
+        self.m_oVl = np.array([0.0, 0.0])
         self.m_oPrinPt = None
     
     def process(self, voVanPt):
@@ -280,6 +280,50 @@ class CCamCal(Object):
         
         return sParamRng
 
+    def plt3dGrd(self, camParam:CCamParam, oVr, oVl, oStGrdPt):
+        afK = camParam.m_afK
+        afR = camParam.m_afR
+        afT = camParam.m_afT
+        afP = camParam.m_afP
+
+        f = open(self.m_oCfg.m_OutCamParamPth, "w")
+        f.write(f"{afK[0]},{afK[1]},{afK[2]},{afK[3]},{afK[4]},{afK[5]},{afK[6]},{afK[7]},{afK[8]}\n")
+        f.write(f"{afR[0]},{afR[1]},{afR[2]},{afR[3]},{afR[4]},{afR[5]},{afR[6]},{afR[7]},{afR[8]}\n")
+        f.write(f"{afT[0]},{afT[1]},{afT[2]}\n")
+        f.write(f"{afK[0]},{afK[1]},{afK[2]},{afK[3]},{afK[4]},{afK[5]},{afK[6]},{afK[7]},{afK[8]},{afR[9]},{afR[10]},{afR[11]}")
+        f.close()
+
+        o2dMeasPt = np.empty((2,))
+        bgImg = self.m_oImgBg.copy()
+        cv2.circle(bgImg, oVr, 3, (255,128,0), 2)
+        cv2.circle(bgImg, oVl, 3, (255,128,0), 2)
+
+        oNdGrdPt = np.empty((2,), dtype=int)
+        oNdGrdPt[1] = oStGrdPt[1] + self.m_oCfg.m_nCalGrdSzR
+        oNdGrdPt[0] = oStGrdPt[0] + self.m_oCfg.m_nCalGrdSzL
+
+        voMeasLnSegNdPt = self.m_oCfg.m_voCalMeasLnSegNdPt
+        oSt2dPt = np.empty((2,), dtype=int)
+        oNd2dPt = np.empty((2,), dtype=int)
+
+        for i in range(len(voMeasLnSegNdPt)//2):
+            oSt2dPt = voMeasLnSegNdPt[i*2]
+            oNd2dPt = voMeasLnSegNdPt[i*2+1]
+            cv2.line(bgImg, oSt2dPt, oNd2dPt, (0,255,0), 3)
+        
+        for iL in range(oStGrdPt[0], oNdGrdPt[0]):
+            for iR in range(oStGrdPt[1], oStGrdPt[1]):
+                if COORD_SYS_TYP == 0:
+                    o2dMeasPt = proj3d22d(np.array([iR, 0.0, iL]), afP, self.m_oCfg.m_nLenUnit)
+                elif COORD_SYS_TYP == 1:
+                    o2dMeasPt = proj3d22d(np.array([iR, iL, 0.0]), afP, self.m_oCfg.m_nLenUnit)
+
+                if (0 <= o2dMeasPt[1]) and (bgImg.shape[1] > o2dMeasPt[1]) and\
+                   (0 <= o2dMeasPt[0]) and (bgImg.shape[0] > o2dMeasPt[0]):
+                    cv2.circle(bgImg, o2dMeasPt, 3, (0,0,255), 10)
+        cv2.namedWindow("3D grid on ground plane", cv2.WINDOW_NORMAL)
+        cv2.imshow("3D grid on ground plane", bgImg)
+        cv2.waitkey(1)
 
     def calcReprojErr(self, camParam:CCamParam) -> float:
         voMeasLnSegNdPt = self.m_oCfg.m_voCalMeasLnSegNdPt
@@ -391,7 +435,19 @@ class CCamCal(Object):
                 print("Reprojection error is small enough. Stop generation.")
                 break
 
+            #how to initialize this value for the first time?
             ReprojErrMeanPrev = fReprojErrMean
 
-            sorted(voCamParam, key=lambda param: param.m_fReprojErr)
+            voCamParam = sorted(voCamParam, key=lambda param: param.m_fReprojErr)
+            voCamParam = voCamParam[:nN]
+
+            for iR in range(nR):
+                oCamParamRand = CCamParam()
+                oCamParamRand.initCamMdl(sParamRng)
+                voCamParam.append(oCamParamRand)
             
+            iIter += 1
+            print("\n")
+            
+        if nIterNum <= iIter:
+            print("Exit: results cannot converge")
