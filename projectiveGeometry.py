@@ -2,8 +2,20 @@ from skimage import feature, color, transform, io
 import numpy as np
 import logging
 
+def compute_vp(lines, threshold_inlier=5, num_ransac_iter=5000, reestimate_model=False):
+    edgelets = compute_edgelets(lineSet)
+    vp1 = ransac_vanishing_point(edgelets, num_ransac_iter=num_ransac_iter, 
+                             threshold_inlier=threshold_inlier)
+    if reestimate_model:
+        vp1 = reestimate_model(vp1, edgelets, threshold_reestimate=threshold_inlier)
+    return vp1
 
-def compute_edgelets(edges, sigma=3):
+def compute2vps(linesH, linesV, threshold_inlier=5, num_ransac_iter=5000, reestimate_model=False):
+    vpH = compute_vp(linesH, threshold_inlier, num_ransac_iter, reestimate_model)
+    vpV = compute_vp(linesV, threshold_inlier, num_ransac_iter, reestimate_model)
+    return vpH, vpV
+    
+def compute_edgelets(lines, sigma=3):
     """Create edgelets as in the paper.
     Uses canny edge detection and then finds (small) lines using probabilstic
     hough transform as edgelets.
@@ -22,10 +34,6 @@ def compute_edgelets(edges, sigma=3):
     strengths: ndarray of shape (n_edgelets,)
         Length of the line segments detected for the edgelet.
     """
-    #gray_img = color.rgb2gray(image)
-    #edges = feature.canny(gray_img, sigma)
-    lines = transform.probabilistic_hough_line(edges, line_length=3,
-                                               line_gap=2)
 
     locations = []
     directions = []
@@ -312,10 +320,10 @@ def vis_edgelets(image, edgelets, show=True):
         plt.show()
 
 
-def vis_model(image, model, show=True):
+def vis_model(image, lines, model, show=True):
     """Helper function to visualize computed model."""
     import matplotlib.pyplot as plt
-    edgelets = compute_edgelets(image)
+    edgelets = compute_edgelets(lines)
     locations, directions, strengths = edgelets
     inliers = compute_votes(edgelets, model, 10) > 0
 
