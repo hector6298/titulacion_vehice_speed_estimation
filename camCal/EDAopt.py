@@ -3,15 +3,8 @@ import cv2
 
 from EDAutils import *
 from camCalObjs import *
+from EDAConstants import *
 
-#constants
-EDA_INIT_POP = 20000
-EDA_SEL_POP = 20
-EDA_ITER_NUM = 100
-
-vanishingPoints = get2VanishingPoints()
-m_oVr = vanishingPoints[0]
-m_oVl = vanishingPoints[1]
 
 class CCamCal(Object):
     def __init__(self, oCfg, oImgBg ):

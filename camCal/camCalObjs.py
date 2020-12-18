@@ -2,8 +2,10 @@ import numpy as np
 import cv2
 from numpy import random
 
+from EDAutils import *
+from EDAConstants import *
 
-class SParamRng(Object):
+class SParamRng(object):
     def __init__(self):
         self.fFxMax = 5000
         self.fFxMin = 0
@@ -85,7 +87,7 @@ class CCamParam(object):
                 self.m_afR[1] = (-np.cos(fRoll)*np.cos(fYaw)) - (np.sin(fRoll)*np.sin(fPitch)*np.cos(fYaw))
                 self.m_afR[2] = np.sin(fRoll)*np.cos(fPitch)
                 self.m_afR[3] = (-np.sin(fRoll) * np.sin(fYaw)) + (np.cos(fRoll) * np.sin(fPitch) * np.cos(fYaw))
-                self.m_afR[4] = -np.sin(fRoll) * np.cos(fYaw)) - (np.cos(fRoll) * np.sin(fPitch) * np.sin(fYaw))
+                self.m_afR[4] = (-np.sin(fRoll) * np.cos(fYaw)) - (np.cos(fRoll) * np.sin(fPitch) * np.sin(fYaw))
                 self.m_afR[5] = -np.cos(fRoll) * np.cos(fPitch)
                 self.m_afR[6] = np.cos(fPitch) * np.cos(fYaw)
                 self.m_afR[7] = -np.cos(fPitch) * np.sin(fYaw)
@@ -150,7 +152,7 @@ class CCamParam(object):
             self.mfTz = get_rand_num(sparamRng.fTzMin, sparamRng.fTzMax)
 
 
-class CCfg(Object):
+class CCfg(object):
     def __init__(self, 
                  Vr, 
                  Vl, 
@@ -162,7 +164,7 @@ class CCfg(Object):
                  optimize=True, 
                  lenUnit=1000, 
                  outpath="results/camParams.txt"):
-                 
+
         assert camHeightMax >= camHeightMin, \
             f"Error, camera height max value should be grater than the min"
         assert len(lineDists) == len(linePoints)/2, \
