@@ -151,20 +151,38 @@ class CCamParam(object):
 
 
 class CCfg(Object):
-    def __init__(self, lenUnit=1000):
-        self.m_oFrmSz = None
-        self.m_nRszFrmHei = None
+    def __init__(self, 
+                 Vr, 
+                 Vl, 
+                 frameSize, 
+                 camHeightMax, 
+                 camHeightMin, 
+                 linePoints, 
+                 lineDists, 
+                 optimize=True, 
+                 lenUnit=1000, 
+                 outpath="results/camParams.txt"):
+                 
+        assert camHeightMax >= camHeightMin, \
+            f"Error, camera height max value should be grater than the min"
+        assert len(lineDists) == len(linePoints)/2, \
+            f"Error, distances and points should match, but got {len(lineDists)} for dists and {len(linePoints)} for points"
+        assert len(linepoints) % 2 == 0, \
+            f"Points should be pairs, but got {len(linepoints)}"
+
+        self.m_oFrmSz = frameSize
+        self.m_nRszFrmHei = -1
         self.m_nLenUnit = lenUnit
-        self.m_oCalVr = None
-        self.m_oCalVl = None
-        self.m_fCalCamHeiMax = None
-        self.m_fCalCamHeiMin = None
-        self.m_nCalGrdSzR = None
-        self.m_nCalGrdSzL = None
-        self.m_bCalEdaOptFlg = None
-        self.m_OutCamParamPth = ""
+        self.m_oCalVr = Vr
+        self.m_oCalVl = Vl
+        self.m_fCalCamHeiMax = camHeightMax
+        self.m_fCalCamHeiMin = camHeightMin
+        self.m_nCalGrdSzR = 10
+        self.m_nCalGrdSzL = 10
+        self.m_bCalEdaOptFlg = optimize
+        self.m_OutCamParamPth = outpath
         #pairs of points of measuring line segments
-        self.m_voCalMeasLnSegNdPt = []
+        self.m_voCalMeasLnSegNdPt = linePoints
         #ground truth ditances of measuring line segments
-        self.m_vfCalMeasLnSegDist = []
+        self.m_vfCalMeasLnSegDist = lineDists
 

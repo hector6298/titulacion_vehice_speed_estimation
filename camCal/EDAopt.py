@@ -112,7 +112,7 @@ class CCamCal(Object):
 
         return camParam
 
-    def tstStGrdPt(self, oStGrdPt:tuple, camParam:CCamParam):
+    def tstStGrdPt(self, oStGrdPt:np.ndarray, camParam:CCamParam):
         nLftEdgX = (-(IMG_EXPN_RAT - 1.0) / 2.0) * self.m_oCfg.m_oFrmSz[1]
         nTopEdgY = (-(IMG_EXPN_RAT - 1.0) / 2.0) * self.m_oCfg.m_oFrmSz[0]
         nRgtEdgX = ((IMG_EXPN_RAT + 1.0) / 2.0) * self.m_oCfg.m_oFrmSz[1]
