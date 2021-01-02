@@ -2,8 +2,8 @@ import numpy as np
 import cv2
 from numpy import random
 
-from EDAutils import *
-from EDAConstants import *
+from .EDAutils import *
+from .EDAConstants import *
 
 class SParamRng(object):
     def __init__(self):

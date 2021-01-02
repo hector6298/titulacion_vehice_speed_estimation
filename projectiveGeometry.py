@@ -3,7 +3,7 @@ import numpy as np
 import logging
 
 def compute_vp(lines, threshold_inlier=5, num_ransac_iter=5000, reestimate_model=False):
-    edgelets = compute_edgelets(lineSet)
+    edgelets = compute_edgelets(lines)
     vp1 = ransac_vanishing_point(edgelets, num_ransac_iter=num_ransac_iter, 
                              threshold_inlier=threshold_inlier)
     if reestimate_model:
@@ -302,11 +302,14 @@ def remove_inliers(model, edgelets, threshold_inlier=95):
     return edgelets
 
 
-def vis_edgelets(image, edgelets, show=True):
+def vis_edgelets(image, edgelets, show=True, ax=None):
     """Helper function to visualize edgelets."""
     import matplotlib.pyplot as plt
-    plt.figure(figsize=(10, 10))
-    plt.imshow(image)
+    if ax is not None:
+        ax.imshow(image)
+    else:
+        plt.figure(figsize=(10, 10))
+        plt.imshow(image)
     locations, directions, strengths = edgelets
     for i in range(locations.shape[0]):
         xax = [locations[i, 0] - directions[i, 0] * strengths[i] / 2,
@@ -314,13 +317,16 @@ def vis_edgelets(image, edgelets, show=True):
         yax = [locations[i, 1] - directions[i, 1] * strengths[i] / 2,
                locations[i, 1] + directions[i, 1] * strengths[i] / 2]
 
-        plt.plot(xax, yax, 'r-')
+        if ax is not None:
+            ax.plot(xax,yax, 'r-')
+        else:
+            plt.plot(xax, yax, 'r-')
 
     if show:
         plt.show()
 
 
-def vis_model(image, lines, model, show=True):
+def vis_model(image, lines, model, ax=None, show=True):
     """Helper function to visualize computed model."""
     import matplotlib.pyplot as plt
     edgelets = compute_edgelets(lines)
@@ -329,13 +335,20 @@ def vis_model(image, lines, model, show=True):
 
     edgelets = (locations[inliers], directions[inliers], strengths[inliers])
     locations, directions, strengths = edgelets
-    vis_edgelets(image, edgelets, False)
+    vis_edgelets(image, edgelets, False, ax=ax)
     vp = model / model[2]
-    plt.plot(vp[0], vp[1], 'bo')
+    
+    if ax is not None:
+        ax.plot(vp[0], vp[1], 'bo')
+    else:
+        plt.plot(vp[0], vp[1], 'bo')
     for i in range(locations.shape[0]):
         xax = [locations[i, 0], vp[0]]
         yax = [locations[i, 1], vp[1]]
-        plt.plot(xax, yax, 'b-.')
+        if ax is not None:
+            ax.plot(xax, yax, 'b-.')
+        else:
+            plt.plot(xax, yax, 'b-.')
 
     if show:
         plt.show()

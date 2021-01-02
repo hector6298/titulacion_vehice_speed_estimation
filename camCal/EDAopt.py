@@ -1,9 +1,9 @@
 import numpy as np
 import cv2
 
-from EDAutils import *
-from camCalObjs import *
-from EDAConstants import *
+from .EDAutils import *
+from .camCalObjs import *
+from .EDAConstants import *
 
 
 class CCamCal(Object):
@@ -46,7 +46,14 @@ class CCamCal(Object):
         self.m_oPrinPt[1] = self.m_oCfg.m_oFrmSz[1] / 2.0
         self.m_oPrinPt[0] = self.m_oCfg.m_oFrmSz[0] / 2.0
 
-#class CCamCal
+    def calCamDctComp(self):
+        fCamHei = (self.m_oCfg.m_fCalCamHeiMax + self.m_oCfg.m_fCalCamHeiMin) / 2.0
+        camParam = self.compCamParam(self.m_oVr, self.m_oVl, self.m_oPrinPt, fCamHei)
+        oStGrdPt = self.calcStGrdPt(camParam)
+        fReprojErr = self.calcReprojErr(camParam)
+        print(f"Reprojection error = {fReprojErr}")
+        self.plt3dGrd(camParam, self.m_oVr, self.m_oVl, oStGrdPt)
+
     def compCamParam(self, OVr, oVl, oPrincipalPt, fCamHeight):
         oVrC = np.empty((2,))
         oVlC = np.empty((2,))

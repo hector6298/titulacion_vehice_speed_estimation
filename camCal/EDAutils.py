@@ -1,7 +1,7 @@
 import numpy as np
 import cv2
 
-from EDAConstants import *
+from .EDAConstants import *
 
 #rotates a point by a given angle
 
