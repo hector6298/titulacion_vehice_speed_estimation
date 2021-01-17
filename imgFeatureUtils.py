@@ -30,17 +30,28 @@ def getEdgeMap(grayImg, min, max):
     grayImgCpy = grayImg.copy()
     return cv2.Canny(grayImgCpy,min,max)
 
-def getLinesFromEdges(edgeMap, angleBounds: tuple, line_length=15, line_gap=2):
+def getLineMax(lines:list):
+    maxDist = 0.0
+    maxInd = 0
+    for i in range(len(lines)):
+        dist = euclideanDist(lines[i])
+        if dist > maxDist:
+            maxDist = dist
+            maxInd = i
+    return lines[maxInd]
+
+def getLinesFromEdges(edgeMap, angleBounds: tuple = None, line_length=15, line_gap=2):
     lines = transform.probabilistic_hough_line(edgeMap, line_length=line_length, line_gap=line_gap)
     filteredLines = []
     for p0, p1 in lines:
         delta = np.array(p1) - np.array(p0)
         theta = np.arctan(float(delta[1])/delta[0])
 
-        if theta > (np.pi/180)*angleBounds[0]\
+        if angleBounds is not None and theta > (np.pi/180)*angleBounds[0]\
            and theta < (np.pi/180)*angleBounds[1]:
             filteredLines.append((p0,p1))
-    
+        elif angleBounds is None:
+            filteredLines.append((p0,p1))
     return filteredLines
     
 

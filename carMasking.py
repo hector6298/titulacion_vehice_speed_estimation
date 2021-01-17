@@ -85,8 +85,8 @@ class objectFocusTools(object):
             for i in range(len(instancesAtFrame)):
                 lines = getLinesFromEdges(instancesAtFrame[i],angleBounds)
                 if len(lines) > 0:
-                    linesCont.append(lines)
-        linesCont = flatten(linesCont)
+                    line = getLineMax(lines)
+                    linesCont.append(line)
         #print(linesCont)
         return linesCont, edgeMap
 

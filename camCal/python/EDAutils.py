@@ -5,10 +5,10 @@ from .EDAConstants import *
 
 #rotates a point by a given angle
 
-def rotPt(oPt:np.ndarray, fAng:float) -> np.ndarray:
+def rotPt(oPt, fAng:float):
     return np.array([
-        ((oPt[1]*np.cos(fAng)) - (oPt[0]* np.sin(fAng))), 
-        ((oPt[1]*np.sin(fAng)) + (oPt[0]* np.cos(fAng)))
+        ((oPt[1]*np.sin(fAng)) + (oPt[0]* np.cos(fAng))),
+        ((oPt[1]*np.cos(fAng)) - (oPt[0]* np.sin(fAng))) 
         ])
 
 def get_rand_num(max:float, min:float, seed:int):
@@ -16,11 +16,10 @@ def get_rand_num(max:float, min:float, seed:int):
     duration = max - min
     return min + rand*duration
 
-def proj3d22d(o3dPt:np.ndarray, afProjMat:np.ndarray, nLenUnit:int=1):
+def proj3d22d(o3dPt, afProjMat, nLenUnit:int=1):
     oMatP = np.reshape(afProjMat, (3,4)).astype(np.float32)
     oMatM3d = np.empty((4,1), dtype=np.float32)
     oMatM2d = np.empty((3,1), dtype=np.float32)
-
     oMatM3d[0,0] = o3dPt[0] * nLenUnit   #x
     oMatM3d[1,0] = o3dPt[1] * nLenUnit   #y
     oMatM3d[2,0] = o3dPt[2] * nLenUnit   #z
@@ -31,7 +30,7 @@ def proj3d22d(o3dPt:np.ndarray, afProjMat:np.ndarray, nLenUnit:int=1):
     o2dPt = ((oMatM2d[0,0]/oMatM2d[2,0]), (oMatM2d[1,0]/oMatM2d[2,0]))
     return o2dPt
 
-def bkproj2d23d(o2dPt:np.ndarray,  afProjMat:np.ndarray, nLenUnit:int=1, nCoordSysTyp:int=1):
+def bkproj2d23d(o2dPt,  afProjMat, nLenUnit:int=1, nCoordSysTyp:int=1):
     oMatA = np.empty((3,3), dtype=np.float64)
 
     if nCoordSysTyp == 0:
@@ -67,8 +66,8 @@ def bkproj2d23d(o2dPt:np.ndarray,  afProjMat:np.ndarray, nLenUnit:int=1, nCoordS
     o3dPt = None
 
     if nCoordSysTyp == 0:
-        o3dPt = (oMatM[0,0], 0.0, oMatM[2,0])/nLenUnit
+        o3dPt = (oMatM[0,0]/nLenUnit, 0.0, oMatM[2,0]/nLenUnit)
     elif nCoordSysTyp == 1:
-        o3dPt = (oMatM[0,0], oMatM[1,0], 0.0)/nLenUnit
+        o3dPt = (oMatM[0,0]/nLenUnit, oMatM[1,0]/nLenUnit, 0.0)
 
     return o3dPt

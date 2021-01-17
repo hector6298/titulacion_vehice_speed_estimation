@@ -6,7 +6,7 @@ from .camCalObjs import *
 from .EDAConstants import *
 
 
-class CCamCal(Object):
+class CCamCal(object):
     def __init__(self, oCfg, oImgBg ):
 
         #configuration params
@@ -24,12 +24,12 @@ class CCamCal(Object):
         self.m_fLinfCorr = None
         self.m_oVr = np.array([(oCfg.m_oFrmSz[1] - 1), 0.0])
         self.m_oVl = np.array([0.0, 0.0])
-        self.m_oPrinPt = None
+        self.m_oPrinPt = np.empty((2,))
     
     def process(self, voVanPt):
         if len(voVanPt) == 2:
-            m_oVr = voVanPt[0]
-            m_oVl = voVanPt[1]
+            self.m_oVr = voVanPt[0]
+            self.m_oVl = voVanPt[1]
             self.estPrinPtByAc()
 
             if self.m_oCfg.m_bCalEdaOptFlg == 0:
@@ -47,14 +47,18 @@ class CCamCal(Object):
         self.m_oPrinPt[0] = self.m_oCfg.m_oFrmSz[0] / 2.0
 
     def calCamDctComp(self):
+        print("start")
         fCamHei = (self.m_oCfg.m_fCalCamHeiMax + self.m_oCfg.m_fCalCamHeiMin) / 2.0
+        print("compCamParam")
         camParam = self.compCamParam(self.m_oVr, self.m_oVl, self.m_oPrinPt, fCamHei)
+        print(f"{camParam.m_afP}")
         oStGrdPt = self.calcStGrdPt(camParam)
+        print("reprojErr")
         fReprojErr = self.calcReprojErr(camParam)
         print(f"Reprojection error = {fReprojErr}")
         self.plt3dGrd(camParam, self.m_oVr, self.m_oVl, oStGrdPt)
 
-    def compCamParam(self, OVr, oVl, oPrincipalPt, fCamHeight):
+    def compCamParam(self, oVr, oVl, oPrincipalPt, fCamHeight):
         oVrC = np.empty((2,))
         oVlC = np.empty((2,))
         oVrCRotation = np.empty((2,))
@@ -65,16 +69,16 @@ class CCamCal(Object):
         oVlC[1] = oVl[1] - oPrincipalPt[1]   #x
         oVlC[0] = oPrincipalPt[0] - oVl[0]    #y
 
-        fRoll = np.rctan2((oVrC[0] - oVlC[0]), (oVrC[1] - oVlC[1]))
+        fRoll = np.arctan2((oVrC[0] - oVlC[0]), (oVrC[1] - oVlC[1]))
         fRoll = fRoll - np.pi if fRoll > (np.pi/2.0) else fRoll
-        fRoll = fRolll + np.pi if fRoll < (-np.pi/2.0) else fRoll
+        fRoll = fRoll + np.pi if fRoll < (-np.pi/2.0) else fRoll
 
         oVrCRotation = rotPt(oVrC, -fRoll)
         oVlCRotation = rotPt(oVlC, -fRoll)
 
-        #why the - sign?
+        #why the - sign? THERE IS OR WAS A - SIGN HERE
         fF = np.sqrt(-((oVrCRotation[0]*oVrCRotation[0]) + (oVrCRotation[1]*oVrCRotation[1])))
-
+        print(((oVrCRotation[0]*oVrCRotation[0]) + (oVrCRotation[1]*oVrCRotation[1])))
         if COORD_SYS_TYP == 0:
             fPitch = -np.arctan2(oVrCRotation[0], fF)
             fYaw = -np.arctan2(fF, (oVrCRotation[1]*np.cos(fPitch)))
@@ -112,7 +116,7 @@ class CCamCal(Object):
 
         return camParam
 
-    def tstStGrdPt(self, oStGrdPt:np.ndarray, camParam:CCamParam):
+    def tstStGrdPt(self, oStGrdPt, camParam:CCamParam):
         nLftEdgX = (-(IMG_EXPN_RAT - 1.0) / 2.0) * self.m_oCfg.m_oFrmSz[1]
         nTopEdgY = (-(IMG_EXPN_RAT - 1.0) / 2.0) * self.m_oCfg.m_oFrmSz[0]
         nRgtEdgX = ((IMG_EXPN_RAT + 1.0) / 2.0) * self.m_oCfg.m_oFrmSz[1]
@@ -124,19 +128,19 @@ class CCamCal(Object):
         o2dNdPt = (-1.0, -1.0)
 
         oNdGrdPt = np.empty((2,))
-        oNdGrdPt[1] = oNdGrdPt[1] + self.m_oCfg.m_nCalGrdSzR
-        oNdGrdPt[0] = oNdGrdPt[0] + self.m_oCfg.m_nCalGrdSzL
+        oNdGrdPt[1] = oStGrdPt[1] + self.m_oCfg.m_nCalGrdSzR
+        oNdGrdPt[0] = oStGrdPt[0] + self.m_oCfg.m_nCalGrdSzL
 
         if COORD_SYS_TYP == 0:
             o2dStPt = proj3d22d((oStGrdPt[1], 0.0, oStGrdPt[0]), camParam.m_afP, self.m_oCfg.m_nLenUnit)
-            o2dRNdPt = proj3d22d((oNdGrdPt[1], 0.0, oStGrdPt[0]), poCamParam.m_afP, self.m_oCfg.m_nLenUnit)
-            o2dLNdPt = proj3d22d((oStGrdPt[1], 0.0, oNdGrdPt[0]), poCamParam.m_afP, self.m_oCfg.m_nLenUnit)
-            o2dNdPt = proj3d22d((oNdGrdPt[1], 0.0, oNdGrdPt[0]), poCamParam.m_afP, self.m_oCfg.m_nLenUnit)
+            o2dRNdPt = proj3d22d((oNdGrdPt[1], 0.0, oStGrdPt[0]), camParam.m_afP, self.m_oCfg.m_nLenUnit)
+            o2dLNdPt = proj3d22d((oStGrdPt[1], 0.0, oNdGrdPt[0]), camParam.m_afP, self.m_oCfg.m_nLenUnit)
+            o2dNdPt = proj3d22d((oNdGrdPt[1], 0.0, oNdGrdPt[0]), camParam.m_afP, self.m_oCfg.m_nLenUnit)
         elif COORD_SYS_TYP == 1:
             o2dStPt = proj3d22d((oStGrdPt[1], oStGrdPt[0], 0.0), camParam.m_afP, self.m_oCfg.m_nLenUnit)
-            o2dRNdPt = proj3d22d((oNdGrdPt[1], oStGrdPt[0], 0.0), poCamParam.m_afP, self.m_oCfg.m_nLenUnit)
-            o2dLNdPt = proj3d22d((oStGrdPt[1], oNdGrdPt[0], 0.0), poCamParam.m_afP, self.m_oCfg.m_nLenUnit)
-            o2dNdPt = proj3d22d((oNdGrdPt[1], oNdGrdPt[0], 0.0), poCamParam.m_afP, self.m_oCfg.m_nLenUnit)
+            o2dRNdPt = proj3d22d((oNdGrdPt[1], oStGrdPt[0], 0.0), camParam.m_afP, self.m_oCfg.m_nLenUnit)
+            o2dLNdPt = proj3d22d((oStGrdPt[1], oNdGrdPt[0], 0.0), camParam.m_afP, self.m_oCfg.m_nLenUnit)
+            o2dNdPt = proj3d22d((oNdGrdPt[1], oNdGrdPt[0], 0.0), camParam.m_afP, self.m_oCfg.m_nLenUnit)
 
         if (((o2dStPt[1] >= nLftEdgX) and (o2dStPt[0] >= nTopEdgY) and (o2dStPt[1] < nRgtEdgX) and (o2dStPt[0] < nBtmEdgY)) and\
 		((o2dRNdPt[1] >= nLftEdgX) and (o2dRNdPt[0] >= nTopEdgY) and (o2dRNdPt[1] < nRgtEdgX) and (o2dRNdPt[0] < nBtmEdgY)) and\
@@ -154,8 +158,8 @@ class CCamCal(Object):
         while True:
             nMaxDist = np.sqrt(nMaxSumSqDist)
             
-            for i in range(nMaxDist+1):
-                for j in range(i,nMaxDist+1):
+            for i in range(int(nMaxDist)+1):
+                for j in range(i,int(nMaxDist)+1):
                     if nMaxSumSqDist == (i*i)+(j*j):
                         voPt.append((i,j))
             
@@ -165,18 +169,21 @@ class CCamCal(Object):
                     oStGrdPt[0] = voPt[i][0]
 
                     if self.tstStGrdPt(oStGrdPt, camParam):
+                        print("check")
                         bStGrdPtFlg = True
                         break
                     if voPt[i][1] > 0:
                         oStGrdPt[1] = -voPt[i][1]
                         oStGrdPt[0] = voPt[i][0]
                         if self.tstStGrdPt(oStGrdPt, camParam):
+                            print("check")
                             bStGrdPtFlg = True
                             break
                     if voPt[i][0] > 0:
                         oStGrdPt[1] = voPt[i][1]
                         oStGrdPt[0] = -voPt[i][0]
                         if self.tstStGrdPt(oStGrdPt, camParam):
+                            print("check")
                             bStGrdPtFlg=True
                             break
                     if voPt[i][1] > 0:
@@ -189,30 +196,34 @@ class CCamCal(Object):
                         oStGrdPt[1] = voPt[i][0]
                         oStGrdPt[0] = voPt[i][1]
                         if self.tstStGrdPt(oStGrdPt, camParam):
+                            print("check")
                             bStGrdPtFlg = True
                             break
-                    if vopt[i][1] < voPt[i][0]:
+                    if voPt[i][1] < voPt[i][0]:
                         oStGrdPt[1] = -voPt[i][0]
                         oStGrdPt[0] = voPt[i][1]
                         if self.tstStGrdPt(oStGrdPt,camParam):
+                            print("check")
                             bStGrdPtFlg = True
                             break
                     if (voPt[i][1] < voPt[i][0]) and (0 < voPt[i][1]):
                         oStGrdPt[1] = voPt[i][0]
                         oStGrdPt[0] = -voPt[i][1]
                         if self.tstStGrdPt(oStGrdPt, camParam):
+                            print("check")
                             bStGrdPtFlg = True
                             break
                     if (voPt[i][1] < voPt[i][0]) and (0 < voPt[i][1]):
                         oStGrdPt[1] = -voPt[i][0]
                         oStGrdPt[0] = -voPt[i][1]
                         if self.tstStGrdPt(oStGrdPt, camParam):
+                            print("check")
                             bStGrdPtFlg = True
                             break
             if bStGrdPtFlg:
                 break
             nMaxSumSqDist += 1
-
+        print(f"starting grid point: {oStGrdPt}")
         return oStGrdPt
                     
     def initEdaParamRng(self, oVr, oVl, oPrincipalPt, camParam:CCamParam) -> SParamRng:
@@ -290,13 +301,14 @@ class CCamCal(Object):
         f.write(f"{afK[0]},{afK[1]},{afK[2]},{afK[3]},{afK[4]},{afK[5]},{afK[6]},{afK[7]},{afK[8]}\n")
         f.write(f"{afR[0]},{afR[1]},{afR[2]},{afR[3]},{afR[4]},{afR[5]},{afR[6]},{afR[7]},{afR[8]}\n")
         f.write(f"{afT[0]},{afT[1]},{afT[2]}\n")
-        f.write(f"{afK[0]},{afK[1]},{afK[2]},{afK[3]},{afK[4]},{afK[5]},{afK[6]},{afK[7]},{afK[8]},{afR[9]},{afR[10]},{afR[11]}")
+        f.write(f"{afP[0]},{afP[1]},{afP[2]},{afP[3]},{afP[4]},{afP[5]},{afP[6]},{afP[7]},{afP[8]},{afP[9]},{afP[10]},{afP[11]}")
         f.close()
 
         o2dMeasPt = np.empty((2,))
         bgImg = self.m_oImgBg.copy()
-        cv2.circle(bgImg, oVr, 3, (255,128,0), 2)
-        cv2.circle(bgImg, oVl, 3, (255,128,0), 2)
+        
+        bgImg = cv2.circle(bgImg, tuple(oVr), 3, (255,128,0), 2)
+        bgImg = cv2.circle(bgImg, tuple(oVl), 3, (255,128,0), 2)
 
         oNdGrdPt = np.empty((2,), dtype=int)
         oNdGrdPt[1] = oStGrdPt[1] + self.m_oCfg.m_nCalGrdSzR
@@ -305,25 +317,21 @@ class CCamCal(Object):
         voMeasLnSegNdPt = self.m_oCfg.m_voCalMeasLnSegNdPt
         oSt2dPt = np.empty((2,), dtype=int)
         oNd2dPt = np.empty((2,), dtype=int)
-
-        for i in range(len(voMeasLnSegNdPt)//2):
-            oSt2dPt = voMeasLnSegNdPt[i*2]
-            oNd2dPt = voMeasLnSegNdPt[i*2+1]
-            cv2.line(bgImg, oSt2dPt, oNd2dPt, (0,255,0), 3)
         
-        for iL in range(oStGrdPt[0], oNdGrdPt[0]):
-            for iR in range(oStGrdPt[1], oStGrdPt[1]):
+        for iL in range(int(oStGrdPt[0]), int(oNdGrdPt[0])):
+            for iR in range(int(oStGrdPt[1]), int(oNdGrdPt[1])):
                 if COORD_SYS_TYP == 0:
                     o2dMeasPt = proj3d22d(np.array([iR, 0.0, iL]), afP, self.m_oCfg.m_nLenUnit)
                 elif COORD_SYS_TYP == 1:
                     o2dMeasPt = proj3d22d(np.array([iR, iL, 0.0]), afP, self.m_oCfg.m_nLenUnit)
-
+                #print(o2dMeasPt)
                 if (0 <= o2dMeasPt[1]) and (bgImg.shape[1] > o2dMeasPt[1]) and\
                    (0 <= o2dMeasPt[0]) and (bgImg.shape[0] > o2dMeasPt[0]):
-                    cv2.circle(bgImg, o2dMeasPt, 3, (0,0,255), 10)
+                    bgImg = cv2.circle(bgImg, tuple(o2dMeasPt), 3, (0,0,255), 10)
         cv2.namedWindow("3D grid on ground plane", cv2.WINDOW_NORMAL)
         cv2.imshow("3D grid on ground plane", bgImg)
-        cv2.waitkey(1)
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
 
     def calcReprojErr(self, camParam:CCamParam) -> float:
         voMeasLnSegNdPt = self.m_oCfg.m_voCalMeasLnSegNdPt
@@ -335,13 +343,13 @@ class CCamCal(Object):
         oSt3dPt = np.empty((3,))
         oNd3dPt = np.empty((3,))
 
-        for i in range(len(voMeasLnSegNdPt)/2):
-            oSt2dPt = voMeasLnSegNdPt[i*2]
-            oNd2DPt = voMeasLnSegNdPt[i*2+1]
-            oSt3dPt = bkproj2d23d(oSt2dPt, camParam.m_afK, self.m_oCfg.m_nLenUnit)
-            oNd3dPt = bkproj2d23d(oNd2DPt, camParam.m_afK, self.m_oCfg.m_nLenUnit)
+        for i in range(len(voMeasLnSegNdPt)):
+            oSt2dPt = voMeasLnSegNdPt[i][0]
+            oNd2DPt = voMeasLnSegNdPt[i][1]
+            oSt3dPt = bkproj2d23d(oSt2dPt, camParam.m_afP, self.m_oCfg.m_nLenUnit)
+            oNd3dPt = bkproj2d23d(oNd2DPt, camParam.m_afP, self.m_oCfg.m_nLenUnit)
 
-            fReprojErr += np.abs(np.linalg.norm(oNd3dPt - oSt3dPt) - vfMeasLnSegDist[i])
+            fReprojErr += np.abs(np.linalg.norm(np.array(oNd3dPt) - np.array(oSt3dPt)) - vfMeasLnSegDist[i])
 
         return fReprojErr
 

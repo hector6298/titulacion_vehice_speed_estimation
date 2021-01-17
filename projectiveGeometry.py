@@ -8,6 +8,7 @@ def compute_vp(lines, threshold_inlier=5, num_ransac_iter=5000, reestimate_model
                              threshold_inlier=threshold_inlier)
     if reestimate_model:
         vp1 = reestimate_model(vp1, edgelets, threshold_reestimate=threshold_inlier)
+    vp1 = vp1 / vp1[2]
     return vp1
 
 def compute2vps(linesH, linesV, threshold_inlier=5, num_ransac_iter=5000, reestimate_model=False):

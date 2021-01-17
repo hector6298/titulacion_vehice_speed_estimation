@@ -1,0 +1,4 @@
+2021.01.10 21:33:25 INFO  Started: Metals version 0.9.8 in workspace '/home/hector/titulacion_vehice_speed_estimation' for client vscode.
+2021.01.10 21:33:36 INFO  time: initialize in 10s
+2021.01.10 21:33:38 WARN  Build server is not auto-connectable.
+2021.01.10 21:33:38 WARN  no build tool detected in workspace '/home/hector/titulacion_vehice_speed_estimation'. The most common cause for this problem is that the editor was opened in the wrong working directory, for example if you use sbt then the workspace directory should contain build.sbt. 
